@@ -8,11 +8,47 @@ import os
 from dir_compat import check_all
 
 
-class TestDirectoryCompatibilityChecker(unittest.TestCase):
+FILE_0_1_PROHIBITED = 'CLOCK$'
+FILE_0_2_DUPLICATE = '.DIR_2'
+FILE_0_3 = 'file_0_3'
+FILE_0_4_PROHIBITED = 'file_0_4?'
+SUBDIR_1 = 'dir_1'
+FILE_1_1_PROHIBITED = '.file_1_1>'
+FILE_1_2 = 'file_1_2'
+FILE_1_3_PROHIBITED = 'file_1_3<'
+SUBDIR_1_1 = 'dir_1_1'
+FILE_1_1_1_PROHIBITED = 'file_1_1.'
+SUBDIR_1_1_1 = 'dir_1_1_1'
+FILE_1_1_1_1 = 'file_1_1_1_1'
+FILE_1_1_1_2_PROHIBITED = 'file_1_1_1_2\\'
+FILE_1_1_1_3_DUPLICATE = 'file_1_1_1_3a'
+FILE_1_1_1_4_DUPLICATE = 'file_1_1_1_4A'
+SUBDIR_2_DUPLICATE = '.dir_2'
+FILE_2_1 = 'file_2_1'
+FILE_2_2_PROHIBITED = 'file_2_2*'
+SUBDIR_2_1_PROHIBITED = 'CON'
+
+
+# TODO: add docstrings and annotations
+class TestDirCompatLinToWin(unittest.TestCase):
+
+    def create_file(self, path, filename, contents=''):
+        with open(os.path.join(path, filename), 'w', encoding='utf-8') as f:
+            f.write(contents)
+
+    def create_subdir(self, *dirs):
+        subdir_path = os.path.join(*dirs)
+        os.makedirs(subdir_path)
+        return subdir_path
 
     def setUp(self):
-        self.test_dir = 'test_directory'
-        os.makedirs(self.test_dir, exist_ok=True)
+        self.test_dir = 'dir_compat_test_dir'
+        os.makedirs(self.test_dir)
+        self.create_file(self.test_dir, FILE_0_1_PROHIBITED)
+        self.create_file(self.test_dir, FILE_0_2_DUPLICATE)
+        self.create_file(self.test_dir, FILE_0_3)
+        self.create_file(self.test_dir, FILE_0_4_PROHIBITED)
+        dir_1 = self.create_subdir(self.test_dir, SUBDIR_1)
 
     def tearDown(self):
         os.rmdir(self.test_dir)
