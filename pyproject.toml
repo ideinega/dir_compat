@@ -1,0 +1,13 @@
+[project]
+name = "dir-compat"
+version = "0.1.0"
+description = "Directory compatibility checker"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+dir-compat = "dir_compat.main:run"
+
+[tool.uv]
+package = true
