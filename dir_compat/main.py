@@ -8,13 +8,13 @@ FS_NTFS = 'ntfs'
 FS_EXFAT = 'exfat'
 FS_EXT = 'ext4'
 FS_EXT_ENCRYPTED = 'ecryptfs'
-FILESYSTEMS_SUPPORTED = [FS_NTFS, FS_EXFAT, FS_EXT, FS_EXT_ENCRYPTED]
+FILESYSTEMS_SUPPORTED = FS_NTFS, FS_EXFAT, FS_EXT, FS_EXT_ENCRYPTED
 
 EXT_PROHIBITED_SYMBOLS = {'/'}
 WIN_PROHIBITED_SYMBOLS = {'/', '\\', ':', '*', '?', '"', '<', '>', '|'}
-WIN_PROHIBITED_NAMES = ['CON', 'PRN', 'AUX', 'CLOCK$', 'NUL',
+WIN_PROHIBITED_NAMES = ('CON', 'PRN', 'AUX', 'CLOCK$', 'NUL',
                         'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-                        'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
+                        'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9')
 
 WIN_FILENAME_LENGTH_LIMIT_SYMBOLS = 255
 EXT_FILENAME_LENGTH_LIMIT_BYTES = 255
@@ -34,7 +34,7 @@ def _get_vars_from_kwargs(**kwargs) -> Tuple[str]:
     return filename, full_path, filesystems, siblings
 
 
-def _filename_limit(encode: bool, limit: int, **kwargs) -> str:
+def _filename_limit(encode: bool, limit: int, **kwargs) -> str | None:
     filename, full_path, fs, _ = _get_vars_from_kwargs(**kwargs)
     units = 'symbols'
     if encode:
@@ -44,19 +44,19 @@ def _filename_limit(encode: bool, limit: int, **kwargs) -> str:
         return f"{full_path} filename is more than {limit} {units}, which isn't allowed on {fs}"
 
 
-def _ext_filename_limit(**kwargs) -> str:
+def _ext_filename_limit(**kwargs) -> str | None:
     return _filename_limit(True, EXT_FILENAME_LENGTH_LIMIT_BYTES, **kwargs)
 
 
-def _ext_encrypted_filename_limit(**kwargs) -> str:
+def _ext_encrypted_filename_limit(**kwargs) -> str | None:
     return _filename_limit(True, EXT_ENCRYPTED_FILENAME_LENGTH_LIMIT_BYTES, **kwargs)
 
 
-def _windows_filename_limit(**kwargs) -> str:
+def _windows_filename_limit(**kwargs) -> str | None:
     return _filename_limit(False, WIN_FILENAME_LENGTH_LIMIT_SYMBOLS, **kwargs)
 
 
-def _path_length_limit(encode: bool, limit: int, **kwargs) -> str:
+def _path_length_limit(encode: bool, limit: int, **kwargs) -> str | None:
     _, full_path, fs, _ = _get_vars_from_kwargs(**kwargs)
     units = 'symbols'
     if encode:
@@ -66,47 +66,47 @@ def _path_length_limit(encode: bool, limit: int, **kwargs) -> str:
         return f"{full_path} path length is than {limit} {units}, which isn't allowed on {fs}"
 
 
-def _ext_encrypted_path_length_limit(**kwargs) -> str:
+def _ext_encrypted_path_length_limit(**kwargs) -> str | None:
     return _path_length_limit(True, EXT_ENCRYPTED_FULL_PATH_LIMIT_SYMBOLS, **kwargs)
 
 
-def _ntfs_path_length_limit(**kwargs) -> str:
+def _ntfs_path_length_limit(**kwargs) -> str | None:
     return _path_length_limit(False, NTFS_FULL_PATH_LIMIT_SYMBOLS, **kwargs)
 
 
-def _exfat_path_length_limit(**kwargs) -> str:
+def _exfat_path_length_limit(**kwargs) -> str | None:
     return _path_length_limit(False, EXFAT_FULL_PATH_LIMIT_SYMBOLS, **kwargs)
 
 
-def _symbols_not_allowed(prohibited_set: Set[str], **kwargs) -> str:
+def _symbols_not_allowed(prohibited_set: Set[str], **kwargs) -> str | None:
     filename, full_path, fs, _ = _get_vars_from_kwargs(**kwargs)
     prohibited = set(filename) & prohibited_set
     if prohibited:
         return f"{full_path} contains \"{''.join(prohibited)}\", which isn't allowed on {fs}"
 
 
-def _win_symbols_not_allowed(**kwargs) -> str:
+def _win_symbols_not_allowed(**kwargs) -> str | None:
     return _symbols_not_allowed(WIN_PROHIBITED_SYMBOLS, **kwargs)
 
 
-def _ext_symbols_not_allowed(**kwargs) -> str:
+def _ext_symbols_not_allowed(**kwargs) -> str | None:
     return _symbols_not_allowed(EXT_PROHIBITED_SYMBOLS, **kwargs)
 
 
-def _win_names_not_allowed(**kwargs) -> str:
+def _win_names_not_allowed(**kwargs) -> str | None:
     filename, full_path, fs, _ = _get_vars_from_kwargs(**kwargs)
     if filename.upper() in WIN_PROHIBITED_NAMES:
         return f"{full_path} is a reserved name on {fs}"
 
 
-def _case_insensitive(**kwargs) -> str:
+def _case_insensitive(**kwargs) -> str | None:
     filename, full_path, fs, siblings = _get_vars_from_kwargs(**kwargs)
     if filename.lower() in map(lambda x: x.lower(), siblings):
         return f"{full_path} has case-insensitive duplicate filenames in the same directory, which isn't allowed on {fs}"
 
 
-NTFS_AND_EXFAT_COMMON_RESTRICTIONS = [_case_insensitive, _win_names_not_allowed, _win_symbols_not_allowed,
-                                      _windows_filename_limit]
+NTFS_AND_EXFAT_COMMON_RESTRICTIONS = [_case_insensitive, _win_names_not_allowed,
+                                      _win_symbols_not_allowed, _windows_filename_limit]
 
 RESTRICTIONS = {
     FS_NTFS: NTFS_AND_EXFAT_COMMON_RESTRICTIONS + [_ntfs_path_length_limit],
@@ -116,7 +116,7 @@ RESTRICTIONS = {
 }
 
 
-def check_all(directory: str, filesystems: list[str] = FILESYSTEMS_SUPPORTED) -> List[str]:
+def check_all(directory: str, filesystems: List[str] = FILESYSTEMS_SUPPORTED) -> List[str]:
     def _get_checks():
         checks = {}
         for fs in filesystems:
