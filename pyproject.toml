@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-dir-compat = "dir_compat.main:run"
+dir-compat = "dir_compat.main:main"
 
 [tool.uv]
 package = true

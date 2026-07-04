@@ -2,7 +2,8 @@
 
 import argparse
 import os
-from typing import List, Tuple, Set
+import sys
+from typing import Dict, List, Tuple, Set
 
 FS_NTFS = 'ntfs'
 FS_EXFAT = 'exfat'
@@ -105,81 +106,83 @@ def _case_insensitive(**kwargs) -> str | None:
         return f"{full_path} has case-insensitive duplicate filenames in the same directory, which isn't allowed on {fs}"
 
 
-NTFS_AND_EXFAT_COMMON_RESTRICTIONS = [_case_insensitive, _win_names_not_allowed,
-                                      _win_symbols_not_allowed, _windows_filename_limit]
+NTFS_AND_EXFAT_COMMON_RULE_FUNCTIONS = [_case_insensitive, _win_names_not_allowed,
+                                        _win_symbols_not_allowed, _windows_filename_limit]
 
-RESTRICTIONS = {
-    FS_NTFS: NTFS_AND_EXFAT_COMMON_RESTRICTIONS + [_ntfs_path_length_limit],
-    FS_EXFAT: NTFS_AND_EXFAT_COMMON_RESTRICTIONS + [_exfat_path_length_limit],
+RULE_FUNCTIONS = {
+    FS_NTFS: NTFS_AND_EXFAT_COMMON_RULE_FUNCTIONS + [_ntfs_path_length_limit],
+    FS_EXFAT: NTFS_AND_EXFAT_COMMON_RULE_FUNCTIONS + [_exfat_path_length_limit],
     FS_EXT: [_ext_symbols_not_allowed, _ext_filename_limit],
     FS_EXT_ENCRYPTED: [_ext_symbols_not_allowed, _ext_encrypted_filename_limit, _ext_encrypted_path_length_limit]
 }
 
 
-def check_all(directory: str, filesystems: List[str] = FILESYSTEMS_SUPPORTED) -> List[str]:
-    def _get_checks():
-        checks = {}
-        for fs in filesystems:
-            for check in RESTRICTIONS[fs]:
-                if check.__name__ in checks:
-                    checks[check.__name__]['fs'].append(fs)
-                else:
-                    checks[check.__name__] = {'fun': check, 'fs': [fs]}
-        return list(checks.values())
-
-    checks = _get_checks()
-
-    def _check_file(path: str, filename: str, siblings: List[str]) -> List[str]:
-        if os.path.islink(os.path.sep.join([path, filename])):
-            return []
-
-        results = []
-        nonlocal checks
-        for check in checks:
-            check_result = check['fun'](path=path, filename=filename, siblings=siblings, fs=check['fs'])
-            if check_result:
-                results.append(check_result)
-        return results
-
-    def _walk_directory(current_path: str, dirname: str, siblings: List[str]) -> List[str]:
-        results = _check_file(current_path, dirname, siblings)
-        dir_count = 0
-        file_count = 0
-        for path, dirs, files in os.walk(os.path.sep.join([current_path, dirname])):
-            dir_count += len(dirs)
-            file_count += len(files)
-            siblings = dirs + files
-            for f in siblings:
-                file_checks = _check_file(path, f, filter(lambda x: x != f, siblings))
-                if file_checks:
-                    results.extend(file_checks)
-        return results, dir_count, file_count
-
-    def print_results(results: List[str], dir_count: int, file_count: int):
-        print(f"Results of checking {directory} for compatibility issues with {', '.join(filesystems)}:")
-        print(f"Checked {dir_count} directorires and {file_count} files.")
-        for result in results:
-            print(result)
-        if not results:
-            print('No issues found.')
-
-    if not (os.path.exists(directory) and os.path.isdir(directory)):
-        print(f"{directory} isn't a directory")
-        return 1
-
-    path, dirname = os.path.split(directory)
-    print_results(*_walk_directory(path, dirname, []))
+def get_rules(filesystems: Tuple[Dict]):
+    rules = {}
+    for filesystem in filesystems:
+        for rule_function in RULE_FUNCTIONS[filesystem]:
+            if rule_function in rules:
+                rules[rule_function]['fs'].append(filesystem)
+            else:
+                rules[rule_function] = {'fun': rule_function, 'fs': [filesystem]}
+    return list(rules.values())
 
 
-def run():
+def print_issues(issues: List[str], dir_count: int, file_count: int, directory: str, filesystems: Tuple[str]):
+    print(f"Results of checking {directory} for compatibility issues with {', '.join(filesystems)}:")
+    print(f"Checked {dir_count} directories and {file_count} files.")
+    for issue in issues:
+        print(issue)
+    if not issues:
+        print('No issues found.')
+
+
+def check_file_or_subdir(path: str, filename: str, siblings: List[str], rules: List[Dict]) -> List[str]:
+    issues = []
+    if os.path.islink(os.path.sep.join([path, filename])):
+        return issues
+    for rule in rules:
+        rule_issues = rule['fun'](path=path, filename=filename, siblings=siblings, fs=rule['fs'])
+        if rule_issues:
+            issues.append(rule_issues)
+    return issues
+
+
+def check_directory_recursively(base_path: str, dirname: str, rules: List[Dict]) -> Tuple[List[str], int, int]:
+    # os.walk excludes . and ..
+    issues = check_file_or_subdir(path=base_path, filename=dirname, siblings=[], rules=rules)
+    dir_count = 0
+    file_count = 0
+    for current_path, dirs, files in os.walk(os.path.sep.join([base_path, dirname])):
+        dir_count += len(dirs)
+        file_count += len(files)
+        files_and_dirs = dirs + files
+        for file in files_and_dirs:
+            siblings = [file_or_dir for file_or_dir in files_and_dirs if file_or_dir != file]
+            file_issues = check_file_or_subdir(path=current_path, filename=file, siblings=siblings, rules=rules)
+            if file_issues:
+                issues.extend(file_issues)
+    return issues, dir_count, file_count
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(prog='dir_compat',
                                      description='Directory compatibility checker, ignores symbolic links and files inaccessible due to permissions')
     parser.add_argument('-d', '--directory', help='Directory to check for compatibility', required=True)
     parser.add_argument('-f', '--filesystems', help='Filesystems to check compatibility with', choices=FILESYSTEMS_SUPPORTED,
                         default=FILESYSTEMS_SUPPORTED, nargs="+")
-    args = vars(parser.parse_args())
-    check_all(**args)
+    args = parser.parse_args()
+    directory = args.directory
+    filesystems = args.filesystems
+    if not (os.path.exists(directory) and os.path.isdir(directory)):
+        print(f"{directory} isn't a directory")
+        return 1
+    rules = get_rules(filesystems=filesystems)
+    path, dirname = os.path.split(directory)
+    issues, dir_count, file_count = check_directory_recursively(base_path=path, dirname=dirname, rules=rules)
+    print_issues(issues=issues, dir_count=dir_count, file_count=file_count, directory=directory, filesystems=filesystems)
+    return 0
 
 
 if __name__ == "__main__":
-    run()
+    sys.exit(main())
