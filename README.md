@@ -12,18 +12,16 @@ pip install dir_compat
 ## Usage
  ```console
 $ dir_compat --help
-usage: dir_compat [-h] -d DIRECTORY
-                  [-f {ntfs,exfat,ext4,ecryptfs} [{ntfs,exfat,ext4,ecryptfs} ...]]
+usage: dir_compat [-h] -d DIR [-f [FS ...]]
 
-Directory compatibility checker, ignores symbolic links and files inaccessible
-due to permissions
+Directory compatibility checker, ignores symbolic links and files inaccessible due to permissions
 
 options:
   -h, --help            show this help message and exit
-  -d DIRECTORY, --directory DIRECTORY
+  -d DIR, --directory DIR
                         Directory to check for compatibility
-  -f {ntfs,exfat,ext4,ecryptfs} [{ntfs,exfat,ext4,ecryptfs} ...], --filesystems {ntfs,exfat,ext4,ecryptfs} [{ntfs,exfat,ext4,ecryptfs} ...]
-                        Filesystems to check compatibility with
+  -f [FS ...], --filesystems [FS ...]
+                        One or more filesystems to check compatibility with (choices: ntfs, exfat, ext4, ecryptfs, all of them if not specified)
 ```
 
  ```console
