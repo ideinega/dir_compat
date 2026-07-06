@@ -27,14 +27,14 @@ options:
  ```console
 $ dir_compat -d ~/directory1
 Results of checking /home/username/directory1 for compatibility issues with ntfs, exfat, ext4, ecryptfs:
-Checked 0 directorires and 15 files.
+Checked 0 directories and 15 files.
 No issues found.
  ```
 
  ```console
 $ dir_compat -d ~/directory2 -f ntfs exfat
 Results of checking /home/username/directory2 for compatibility issues with ntfs, exfat:
-Checked 8 directorires and 19 files.
+Checked 8 directories and 19 files.
 /home/username/directory2/.dir2 has case-insensitive duplicate filenames in the same directory, which isn't allowed on ntfs, exfat
 /home/username/directory2/.DIR2 has case-insensitive duplicate filenames in the same directory, which isn't allowed on ntfs, exfat
 /home/username/directory2/CLOCK$ is a reserved name on ntfs, exfat
@@ -47,4 +47,19 @@ Checked 8 directorires and 19 files.
 /home/username/directory2/dir1/dir3/dir4/dir5\ contains "\", which isn't allowed on ntfs, exfat
 /home/username/directory2/dir1/dir3/dir4/file4_a has case-insensitive duplicate filenames in the same directory, which isn't allowed on ntfs, exfat
 /home/username/directory2/dir1/dir3/dir4/file4_A has case-insensitive duplicate filenames in the same directory, which isn't allowed on ntfs, exfat
+ ```
+
+ ## Development
+ Have uv installed on your system and install dependencies:
+ ```console
+ uv sync
+ ```
+ Run the tool if needed:
+ ```console
+ uv run dir-compat
+ ```
+ Format code, check and fix issue:
+ ```console
+ uv run ruff format .
+ uv run ruff check .
  ```
