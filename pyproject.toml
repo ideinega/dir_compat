@@ -7,13 +7,14 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-dir-compat = "dir_compat.main:main"
+dir_compat = "dir_compat.main:main"
 
 [tool.uv]
 package = true
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.15.20",
 ]
 

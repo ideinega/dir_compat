@@ -56,7 +56,7 @@ Checked 8 directories and 19 files.
  ```
  Run the tool if needed:
  ```console
- uv run dir-compat
+ uv run dir_compat
  ```
  Format code, check and fix issue:
  ```console
